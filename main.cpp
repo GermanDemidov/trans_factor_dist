@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include "parser.h"
+#include "transcription_factor.h"
 
 class Solver {
     std::map<char, double> background_probabilities;
@@ -23,18 +24,18 @@ public:
         // parse FASTA-file, creates hash map "sequences" inside fasta_sequences
         // key - fasta id, value - fasta sequence
         Parser_fasta fasta_sequences(fasta_filename);
-        // fasta_sequences.debug_print();
+        //fasta_sequences.debug_print();
         
         // parse PCM-file, creates PWM - hash map
         // key - TF name, value - vector of doubles
         Parser_pcm pcm_for_TFs(pcm_filename);
+        std::vector<std::string> protein_names = pcm_for_TFs.return_protein_names();
         
         // test of pcm_for_TFs
-        std::vector<std::string> protein_names = pcm_for_TFs.return_protein_names();
-        std::copy(protein_names.begin(), protein_names.end(), std::ostream_iterator<std::string>(std::cout, " "));
+        /*std::copy(protein_names.begin(), protein_names.end(), std::ostream_iterator<std::string>(std::cout, " "));
         std::vector<std::map<char, double>> profile_for_hkb = pcm_for_TFs.return_profile_for_protein(protein_names[protein_names.size() - 1]);
         std::cout << profile_for_hkb[1].at('C') << "\n"; // 9.326495726495676
-        std::cout << profile_for_hkb[9].at('T') << "\n"; // 34.74119658119628
+        std::cout << profile_for_hkb[9].at('T') << "\n"; // 34.74119658119628*/
         
         
     }

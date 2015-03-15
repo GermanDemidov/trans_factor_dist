@@ -30,6 +30,7 @@ public:
         // key - TF name, value - vector of doubles
         Parser_pcm pcm_for_TFs(pcm_filename);
         std::vector<std::string> protein_names = pcm_for_TFs.return_protein_names();
+        pcm_for_TFs.calculate_pwm(background_probabilities);
         
         // test of pcm_for_TFs
         /*std::copy(protein_names.begin(), protein_names.end(), std::ostream_iterator<std::string>(std::cout, " "));

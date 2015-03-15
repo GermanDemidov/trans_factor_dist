@@ -18,8 +18,11 @@ public:
     Transcription_factor(int, const std::vector<std::map<char, double>>&);
     double calculate_weight_of_binding(std::string);
     void calculate_next_event();
+    
 private:
-    bool binded_to_dna;
+    int coordinate_in_sequence;
+    bool binded_to_dna_non_specifically;
+    bool binded_to_dna_specifically;
     const int id_of_current_tf;
     const std::vector<std::map<char, double>>& motif;
 };

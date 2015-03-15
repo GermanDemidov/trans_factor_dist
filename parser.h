@@ -34,14 +34,14 @@ class Parser_pcm {
 private:
     std::vector<char> nucleotides;
     std::map<std::string, std::vector<std::map<char, double>>> pcm;
-    std::map<std::string, std::vector<std::map<char, double>>> pvm;
+    std::map<std::string, std::vector<std::map<char, double>>> pwm;
     std::vector<std::string> protein_names;
 
     
 public:
     Parser_pcm(std::string);
     
-    void calculate_pwm(std::map<char, double>);
+    void calculate_pwm(std::map<char, double>&);
     std::vector<std::map<char, double>> return_profile_for_protein (std::string);
     std::vector<std::string> return_protein_names();
 

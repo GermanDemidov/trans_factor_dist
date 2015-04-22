@@ -40,6 +40,30 @@ Parser_fasta::Parser_fasta(std::string filename) {
     }
 };
 
+std::string& Parser_fasta::get_sequence_by_name(std::string name) {
+    std::string founded_name;
+    std::string tmp_best_candidate = "";
+    for(std::map<std::string, std::string>::iterator iter = sequences.begin(); iter != sequences.end(); ++iter)
+    {
+        std::string current_name =  iter->first;
+        std::string tmp_candidate = "";
+        for (int i = 0; i < name.size(); i++) {
+            if (name[i] == current_name[i]) {
+                tmp_candidate += name[i];
+                if (tmp_candidate.size() > tmp_best_candidate.size()) {
+                    tmp_best_candidate = tmp_candidate;
+                    founded_name = current_name;
+                }
+            }
+        }
+    }
+    return sequences[founded_name];
+}
+
+std::map<std::string, std::string> Parser_fasta::return_sequences() {
+    return sequences;
+}
+
 void Parser_fasta::debug_print() {
     for (std::map<std::string, std::string>::iterator it = sequences.begin(); it != sequences.end(); ++it) {
         std::cout << it->first << "\n" << it->second << "\n";
@@ -95,8 +119,12 @@ std::vector<std::string> Parser_pcm::return_protein_names() {
     return protein_names;
 }
 
-std::vector<std::map<char, double>> Parser_pcm::return_profile_for_protein(std::string tf_name) {
+std::vector<std::map<char, double>> Parser_pcm::return_profile_for_protein_pcm(std::string tf_name) {
     return pcm.at(tf_name);
+}
+
+std::vector<std::map<char, double>> Parser_pcm::return_profile_for_protein_pwm(std::string tf_name) {
+    return pwm.at(tf_name);
 }
 
 
@@ -120,7 +148,9 @@ void Parser_pcm::calculate_pwm(std::map<char, double>& background_probabilites) 
                                    (it_v->at(*nucleot) + a * background_probabilites.at(*nucleot)) /
                                    ((W + a) * background_probabilites.at(*nucleot))
                                    );
-                std::cout << it->first << " " << *nucleot << " " << it_v->at(*nucleot) << " " << a << " " <<background_probabilites.at(*nucleot) << " " << W << "\n" << value << "\n\n";
+                // debug print
+                // uncomment if needed
+                // std::cout << it->first << " " << *nucleot << " " << it_v->at(*nucleot) << " " << a << " " <<background_probabilites.at(*nucleot) << " " << W << "\n" << value << "\n\n";
                 tmp_map_for_pwm.insert(std::make_pair(*nucleot, value));
             }
             tmp_vector_for_pwm.push_back(tmp_map_for_pwm);
@@ -128,6 +158,51 @@ void Parser_pcm::calculate_pwm(std::map<char, double>& background_probabilites) 
         pwm.insert(std::make_pair(it->first, tmp_vector_for_pwm));
     }
 }
+
+
+
+
+Parser_dnase_acc::Parser_dnase_acc(std::string input_file) {
+    std::ifstream pcm_file (input_file);
+    int start = -1;
+    int end = -1;
+    short current_state = -1;
+    short previous_state = -1;
+    int counter = -1;
+    std::cout << input_file << "\n";
+    if (pcm_file.is_open()) {
+        while (pcm_file >> current_state) {
+            counter++;
+            if (previous_state == 0 && current_state == 1) {
+                start = counter;
+            }
+            if (previous_state == 1 && current_state == 0) {
+                end = counter;
+                open_acc_intervals.push_back(std::make_pair(start, end));
+                std::cout << start << " " << end << "\n";
+            }
+            previous_state = current_state;
+        }
+    }
+};
+
+bool Parser_dnase_acc::is_in_interval(std::pair<int, int> coords_of_tf_binding) {
+    for (auto& coords : open_acc_intervals) {
+        if (coords.first <= coords_of_tf_binding.first) {
+            if (coords.second >= coords_of_tf_binding.second) {
+                return true;
+            } else {
+                break;
+            }
+        }
+    }
+    return false;
+}
+
+
+
+
+
 
 
 

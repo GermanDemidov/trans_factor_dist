@@ -13,15 +13,26 @@
 #include <map>
 #include <vector>
 #include "transcription_factor.h"
+#include "parser.h"
 
 class Cell {
 public:
-    Cell(std::map<std::string, std::string>, std::vector<int>);
+    Cell(std::string&, std::string&, int, std::vector<Transcription_factor>&, Parser_dnase_acc&);
     void generate_next_event();
+    void generate_TF_appearance_time();
+    void find_specific_binding_sites(Transcription_factor, Parser_dnase_acc&, bool);
     
 private:
-    std::map<std::string, std::string> DNA;
+    int cell_id;
+    
+    std::string forward_DNA;
+    std::string reverse_DNA;
     std::vector<Transcription_factor> transcription_factors;
+    std::map<std::string, std::vector<double> > weights_of_binding_of_all_tfs_forward;
+    std::map<std::string, std::vector<double> > weights_of_binding_of_all_tfs_revcompl;
+    
+    std::map<std::string, std::map<int, bool> > specific_binding_sites_forward;
+    std::map<std::string, std::map<int, bool> > specific_binding_sites_backward;
     
 };
 

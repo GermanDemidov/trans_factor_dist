@@ -24,6 +24,8 @@ private:
     
 public:
     Parser_fasta(std::string);
+    std::string& get_sequence_by_name(std::string);
+    std::map<std::string, std::string> return_sequences();
     
     void debug_print();
     
@@ -42,9 +44,21 @@ public:
     Parser_pcm(std::string);
     
     void calculate_pwm(std::map<char, double>&);
-    std::vector<std::map<char, double>> return_profile_for_protein (std::string);
+    std::vector<std::map<char, double>> return_profile_for_protein_pcm (std::string);
+    std::vector<std::map<char, double>> return_profile_for_protein_pwm (std::string);
     std::vector<std::string> return_protein_names();
 
 };
+
+class Parser_dnase_acc {
+private:
+    std::vector<std::pair<int, int>> open_acc_intervals;
+
+public:
+    Parser_dnase_acc(std::string);
+    bool is_in_interval(std::pair<int, int>);
+};
+
+
 
 #endif /* defined(__trans_factors_distrib__parser__) */

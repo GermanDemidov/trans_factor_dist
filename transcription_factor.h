@@ -12,19 +12,25 @@
 #include <stdio.h>
 #include <vector>
 #include <map>
+#include <string>
+#include <iostream>
 
 class Transcription_factor {
 public:
-    Transcription_factor(int, const std::vector<std::map<char, double>>&);
-    double calculate_weight_of_binding(std::string);
+    std::string type_name;
+    Transcription_factor(int, std::vector<std::map<char, double>>, std::string);
+    double calculate_weight_of_binding(std::string&);
     void calculate_next_event();
-    
+    void change_coordinate_in_sequence(int);
+    int get_size();
+
 private:
     int coordinate_in_sequence;
     bool binded_to_dna_non_specifically;
     bool binded_to_dna_specifically;
     const int id_of_current_tf;
-    const std::vector<std::map<char, double>>& motif;
+    std::vector<std::map<char, double>> motif;
+
 };
 
 #endif /* defined(__trans_factors_distrib__transcription_factor__) */

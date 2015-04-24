@@ -24,11 +24,16 @@ public:
         background_probabilities.insert(std::make_pair('G', 0.21231180721224));
         background_probabilities.insert(std::make_pair('T', 0.28768819278776));
         
-        // initialization of concentrations
-        concentrations.insert(std::make_pair(first_prot, 10.7));
-        concentrations.insert(std::make_pair(second_prot, 14.8));
+        // number of transcription factors
+        const int number_of_transcription_factors = 10000;
         
-        const int number_of_simulations = 100;
+        double first_concentration = 1.8;
+        double second_concentration = 4.1;
+        // initialization of concentrations
+        concentrations.insert(std::make_pair(first_prot, first_concentration));
+        concentrations.insert(std::make_pair(second_prot, second_concentration));
+        
+        const int number_of_simulations = 1;
         
         // file with the data about euchromatin/
         std::string euchromatin_input = "/Users/german/Desktop/Gurskiy/project/trans_factors_distrib/trans_factors_distrib/dnase/" + gene_to_study + "_dnaseAccS05.btrack";
@@ -70,23 +75,19 @@ public:
                     break;
                 }
             }
+
             if (flag_of_gene_to_study == true) {
+                std::string sequence_for_gene_to_study = iterator->second;
+                std::string promoter_sequence = sequence_for_gene_to_study.substr(0, 12000);
+                std::string revcompl_promoter_sequence = reverse_compliment(sequence_for_gene_to_study.substr(0, 12000));
+                
                 for (int i = 0; i != protein_names.size(); ++i) {
                     if (protein_names[i] == ">" + first_prot || protein_names[i] == ">" + second_prot) {
                         std::cout << protein_names[i] << " ";
                         Transcription_factor tf(0, pcm_for_TFs.return_profile_for_protein_pwm(protein_names[i]), protein_names[i]);
                         transcription_factors_to_initialize.push_back(tf);
                     }
-                        std::string sequence_for_gene_to_study = iterator->second;
-                        std::string promoter_sequence = sequence_for_gene_to_study.substr(0, 12000);
-                        std::string revcompl_promoter_sequence = reverse_compliment(sequence_for_gene_to_study.substr(0, 12000));
-                        std::cout << promoter_sequence << "\n";
-                        std::cout << revcompl_promoter_sequence << "\n";
-                        
-                        for (int k = 0; k < number_of_simulations; ++k) {
-                            Cell(promoter_sequence, revcompl_promoter_sequence, k,
-                                 transcription_factors_to_initialize, euchromatin);
-                        }
+
                         
                     /*highest_binding_sites[iterator->first].push_back(0);
                     std::string sequence_for_prot = iterator->second;
@@ -110,6 +111,23 @@ public:
                             highest_binding_sites[iterator->first][last_elem - 1]++;
                         }
                     }*/
+                }
+                double sum_of_concentrations;
+                for (std::map<std::string, double>::iterator it = concentrations.begin(); it != concentrations.end(); ++it) {
+                    sum_of_concentrations += it->second;
+                }
+                int bound_between_different_types = (int) (first_concentration * number_of_transcription_factors / sum_of_concentrations);
+                for (int k = 0; k < number_of_simulations; ++k) {
+                    std::vector<Transcription_factor> tfs_instances;
+                    for (int j = 0; j < number_of_transcription_factors; j++) {
+                        if (j < bound_between_different_types) {
+                            tfs_instances.push_back(Transcription_factor(j, pcm_for_TFs.return_profile_for_protein_pwm(protein_names[0]), protein_names[0]));
+                        } else {
+                            tfs_instances.push_back(Transcription_factor(j, pcm_for_TFs.return_profile_for_protein_pwm(protein_names[1]), protein_names[1]));
+                        }
+                    }
+                    Cell(promoter_sequence, revcompl_promoter_sequence, k,
+                         transcription_factors_to_initialize, euchromatin, concentrations, tfs_instances);
                 }
             }
         }
@@ -135,6 +153,7 @@ public:
         std::cout << count_of_long_hops << "\n";
         std::cout << "\nMEAN: " << sm(test) << " SD: " << sd(test) << "\n";*/
         
+
     }
 };
 

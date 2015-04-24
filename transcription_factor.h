@@ -23,12 +23,17 @@ public:
     void calculate_next_event();
     void change_coordinate_in_sequence(int);
     int get_size();
+    bool is_binded();
+    
+    // change bool field of binding
+    void bind_to_dna();
+    void unbind_from_dna();
 
 private:
     int coordinate_in_sequence;
-    bool binded_to_dna_non_specifically;
+    bool binded_to_dna;
     bool binded_to_dna_specifically;
-    const int id_of_current_tf;
+    int id_of_current_tf;
     std::vector<std::map<char, double>> motif;
 
 };

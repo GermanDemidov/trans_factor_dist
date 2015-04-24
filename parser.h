@@ -57,6 +57,7 @@ private:
 public:
     Parser_dnase_acc(std::string);
     bool is_in_interval(std::pair<int, int>);
+    bool is_in_interval(int);
 };
 
 

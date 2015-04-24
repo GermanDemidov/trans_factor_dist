@@ -8,6 +8,30 @@
 
 #include "auxuilary.h"
 
+Precalculated_values::Precalculated_values(double min_value_exp, double max_value_exp, int precision_exp) {
+    min_val_to_add = min_value_exp;
+    int multiplier_to_round_up = 1;
+    for (int i = 0; i < precision_exp; ++i)
+    {
+        multiplier_to_round_up *= 10;
+    }
+    multiplier_to_round = multiplier_to_round_up;
+    calculate_vector_of_exponents(min_value_exp, max_value_exp);
+}
+
+void Precalculated_values::calculate_vector_of_exponents(double min_val, double max_val) {
+    int min_val_to_calc = (int)(min_val * multiplier_to_round);
+    int max_val_to_calc = (int)(max_val * multiplier_to_round);
+    for (int i = min_val_to_calc; i <= max_val_to_calc; i++) {
+        double x = (1.0 * i) / multiplier_to_round;
+        exponents_values.push_back(exp(x));
+    }
+};
+
+double Precalculated_values::return_exponent_of_double(double x) {
+    return exponents_values[(int)(abs(min_val_to_add) + x * multiplier_to_round)];
+};
+
 double sm(std::vector<double> sample) {
     double mean = 0.0;
     for (int i = 0; i < sample.size(); ++i) {
@@ -55,3 +79,13 @@ double generate_next_time(double sum_of_propensities) {
 int generate_next_coordinate_change() {
     return 5 + (int)generate_next_time(4.0);
 }
+
+double fRand(double x, double y)
+{
+    double fMin = std::min(x,y);
+    double fMax = std::max(x,y);
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
+
+

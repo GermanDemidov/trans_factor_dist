@@ -11,7 +11,7 @@
 
 Transcription_factor::Transcription_factor(int id_of_tf, std::vector<std::map<char, double>>motif_of_tf, std::string type_of_tf): motif(motif_of_tf), id_of_current_tf(id_of_tf), type_name(type_of_tf) {
     binded_to_dna_specifically = false;
-    binded_to_dna_non_specifically = false;
+    binded_to_dna = false;
     coordinate_in_sequence = 0;
 }
 
@@ -33,3 +33,16 @@ void Transcription_factor::change_coordinate_in_sequence(int i) {
 int Transcription_factor::get_size() {
     return (int)motif.size();
 }
+
+bool Transcription_factor::is_binded() {
+    return binded_to_dna;
+}
+
+void Transcription_factor::bind_to_dna() {
+    binded_to_dna = true;
+}
+
+void Transcription_factor::unbind_from_dna() {
+    binded_to_dna = false;
+}
+

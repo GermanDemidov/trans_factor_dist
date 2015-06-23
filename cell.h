@@ -31,14 +31,16 @@ public:
     
     void find_potential_strength(bool);
     
-    void start_simulation();
+    void start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc&);
     
 private:
     int cell_id;
-    const int total_number_of_TFs_to_bind = 100;
+    int total_number_of_TFs_to_bind = 100;
+    int number_of_steps_before_stabilization = 100;
+    int number_of_one_dim_slidings_in_step = 3;
     
     // first - time, second - true if it is operation of binding, false if it is operation of sliding or unbinding
-    std::priority_queue<std::pair<double, bool>> timeline;
+    std::priority_queue<std::pair<double, bool>, std::vector<std::pair<double, bool>>, compare> timeline;
     
     std::string forward_DNA;
     std::string reverse_DNA;
@@ -55,6 +57,10 @@ private:
     std::map<std::string, std::vector<std::pair<double, double>> > potential_strength_forward;
     std::map<std::string, std::vector<std::pair<double, double>> > potential_strength_revcompl;
 
+    // vector with occupied coordinates
+    std::set<std::pair<int, int> > no_access_dna_forward;
+    std::set<std::pair<int, int> > no_access_dna_revcompl;
+    
     // return special value if the index is out of vector coordinates
     double return_weight_of_binding(int, std::vector<double>);
     
@@ -70,8 +76,8 @@ private:
     std::map<std::string, double> minimums_for_normalizations_of_potentials;
     
     // events of binding and unbinding
-    void bind_tf_to_dna(int, Transcription_factors_in_cell& );
-    void unbind_tf_from_dna(int, Transcription_factors_in_cell& );
+    void bind_tf_to_dna(int, Transcription_factors_in_cell&, Parser_dnase_acc& dnase);
+    void unbind_tf_from_dna(int, Transcription_factors_in_cell&);
     
     // calculate next movement
     int move_tf_right_or_left(int, double, double, std::string& );
@@ -79,6 +85,20 @@ private:
     // test for unbinding
     bool test_for_unbinding(double );
 
+    // test to not to fall in no access dna
+    bool binding_site_is_free(bool forward_or_reverse, int coord, int len_of_tf);
+
+    // the function that denotes one dimensional sliding
+    void one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell&);
+    
+    // function that finds if tf is binded specifically and apply the result
+    void test_for_specific_binding(int i, Transcription_factors_in_cell&);
+    
+    
+
 };
+
+
+
 
 #endif /* defined(__trans_factors_distrib__cell__) */

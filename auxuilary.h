@@ -49,17 +49,30 @@ template<class T>
 class Choose_element_from_array {
 public:
     Choose_element_from_array() {
-        std::random_device seed;
-        std::mt19937 eng(seed());
+        auto const seed = std::random_device()();
+        std::mt19937 eng(seed);
         engine = eng;
     }
-    int choose_element_from_array(long foo) {
-        std::uniform_int_distribution<int> choose( 0 , foo - 1) ;
-        return choose( engine );
-    }
+
 private:
     std::mt19937 engine;
 };
+
+struct compare
+{
+    inline bool operator () (const std::pair<double, bool>& x, const std::pair<double, bool>& y) const
+    {
+        if(x.first != y.first)
+            return x.first > y.first;
+        else
+            return x.second > y.second;
+    }
+};
+
+
+std::default_random_engine & global_urng( );
+void randomize( );
+int pick_a_number( int from, int thru );
 
 
 #endif /* defined(__trans_factors_distrib__auxuilary__) */

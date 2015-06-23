@@ -13,6 +13,8 @@ Transcription_factor::Transcription_factor(int id_of_tf, std::vector<std::map<ch
     binded_to_dna_specifically = false;
     binded_to_dna = false;
     coordinate_in_sequence = 0;
+    binded_to_forward_dna = false;
+    
 }
 
 double Transcription_factor::calculate_weight_of_binding(std::string& DNA) {
@@ -38,11 +40,25 @@ bool Transcription_factor::is_binded() {
     return binded_to_dna;
 }
 
-void Transcription_factor::bind_to_dna() {
+void Transcription_factor::bind_to_dna(bool bind_to_forward) {
     binded_to_dna = true;
+    if (bind_to_forward)
+        binded_to_forward_dna = true;
+    else binded_to_forward_dna = false;
 }
 
 void Transcription_factor::unbind_from_dna() {
     binded_to_dna = false;
 }
 
+bool Transcription_factor::is_binded_to_forward() {
+    return binded_to_forward_dna;
+}
+
+int Transcription_factor::get_coordinate_in_sequence() {
+    return coordinate_in_sequence;
+}
+
+void Transcription_factor::set_binded_to_dna_specifically() {
+    binded_to_dna_specifically = true;
+}

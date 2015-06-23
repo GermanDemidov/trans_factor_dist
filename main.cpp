@@ -25,7 +25,7 @@ public:
         background_probabilities.insert(std::make_pair('T', 0.28768819278776));
         
         // number of transcription factors
-        const int number_of_transcription_factors = 10000;
+        const int number_of_transcription_factors = 100;
         
         double first_concentration = 1.8;
         double second_concentration = 4.1;

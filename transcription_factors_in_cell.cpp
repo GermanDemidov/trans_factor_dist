@@ -18,6 +18,7 @@ Transcription_factors_in_cell::Transcription_factors_in_cell(std::vector<std::st
         number_of_unbinded_TFs[tfs[i].type_name]++;
     }
     
+    std::cout << "Sizes " << indexes_of_binded_TFs.size() << "\n";
     
     Choose_element_from_array<int> rand_elem_int;
     choose_for_int_vect = rand_elem_int;
@@ -27,7 +28,7 @@ int Transcription_factors_in_cell::choose_next_unbinded_DNA_to_interact() {
     int answer = -1;
     bool succesfully_found_unbinded = false;
     while (!succesfully_found_unbinded) {
-        answer = choose_for_int_vect.choose_element_from_array(tfs.size());
+        answer = pick_a_number(0, tfs.size() - 1);
         if (!tfs[answer].is_binded()) succesfully_found_unbinded = true;
     }
     return answer;
@@ -36,18 +37,20 @@ int Transcription_factors_in_cell::choose_next_unbinded_DNA_to_interact() {
 int Transcription_factors_in_cell::choose_next_binded_DNA_to_interact() {
     int answer = -1;
     if (!indexes_of_binded_TFs.empty()) {
-        answer = choose_for_int_vect.choose_element_from_array(indexes_of_binded_TFs.size());
+        answer = pick_a_number(0, indexes_of_binded_TFs.size() - 1);
         std::set<int>::iterator it = indexes_of_binded_TFs.begin();
         for (; answer != 0; answer--) it++;
+        std::cout << "IT" << *it << "\n";
         return *it;
     } else {
         std::cerr << "Binded to DNA list is empty and you try to interact with them" << "\n";
+        return -1;
     }
     return *indexes_of_binded_TFs.begin();
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_binded_TFs() {
-    return generate_next_time(indexes_of_binded_TFs.size());
+    return generate_next_time(0.01 * indexes_of_binded_TFs.size());
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_unbinded_TFs() {
@@ -58,9 +61,10 @@ double Transcription_factors_in_cell::generate_next_characteristic_time_for_unbi
     return generate_next_time(sum_of_unbinded_TFs);
 }
 
-void Transcription_factors_in_cell::bind_tf_to_dna(int i) {
-    tfs[i].bind_to_dna();
+void Transcription_factors_in_cell::bind_tf_to_dna(int i, bool bind_to_forward) {
+    tfs[i].bind_to_dna(bind_to_forward);
     indexes_of_binded_TFs.insert(i);
+    std::cout << indexes_of_binded_TFs.size() << " BINDED SUCCESFULLY\n";
     number_of_unbinded_TFs[tfs[i].type_name] -= 1;
 }
 
@@ -77,5 +81,14 @@ int Transcription_factors_in_cell::number_of_binded_dna() {
 std::string Transcription_factors_in_cell::get_type_of_TF(int i) {
     return tfs[i].type_name;
 }
+
+int Transcription_factors_in_cell::get_size_of_TF(int i) {
+    return tfs[i].get_size();
+}
+
+Transcription_factor& Transcription_factors_in_cell::get_tf_by_index(int i) {
+    return tfs[i];
+}
+
 
 

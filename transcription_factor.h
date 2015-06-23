@@ -24,12 +24,18 @@ public:
     void change_coordinate_in_sequence(int);
     int get_size();
     bool is_binded();
+    int get_coordinate_in_sequence();
+    
+    void set_binded_to_dna_specifically();
     
     // change bool field of binding
-    void bind_to_dna();
+    void bind_to_dna(bool);
     void unbind_from_dna();
+    
+    bool is_binded_to_forward();
 
 private:
+    bool binded_to_forward_dna = false;
     int coordinate_in_sequence;
     bool binded_to_dna;
     bool binded_to_dna_specifically;

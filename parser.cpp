@@ -178,6 +178,7 @@ Parser_dnase_acc::Parser_dnase_acc(std::string input_file) {
             }
             if (previous_state == 1 && current_state == 0) {
                 end = counter;
+                std::cout << "Open access nucleotides " << start << " " << end << "\n";
                 open_acc_intervals.push_back(std::make_pair(start, end));
             }
             previous_state = current_state;
@@ -190,8 +191,6 @@ bool Parser_dnase_acc::is_in_interval(std::pair<int, int> coords_of_tf_binding) 
         if (coords.first <= coords_of_tf_binding.first) {
             if (coords.second >= coords_of_tf_binding.second) {
                 return true;
-            } else {
-                break;
             }
         }
     }
@@ -200,9 +199,6 @@ bool Parser_dnase_acc::is_in_interval(std::pair<int, int> coords_of_tf_binding) 
 
 bool Parser_dnase_acc::is_in_interval(int x) {
     for (auto& coords : open_acc_intervals) {
-        if (coords.first > x) {
-            break;
-        }
         if (coords.first <= x && coords.second >= x) {
                 return true;
         }

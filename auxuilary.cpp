@@ -89,3 +89,19 @@ double fRand(double x, double y)
 }
 
 
+std::default_random_engine & global_urng( ) {
+    static std::default_random_engine  u{};
+    return u;
+}
+void randomize( ) {
+    static std::random_device  rd{};
+    global_urng().seed( rd() );
+}
+int pick_a_number( int from, int thru ) {
+    randomize();
+    static std::uniform_int_distribution<>  d{};
+    using  parm_t  = decltype(d)::param_type;
+    return d( global_urng(), parm_t{from, thru} );
+}
+
+

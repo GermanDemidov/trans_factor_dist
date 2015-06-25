@@ -178,7 +178,6 @@ Parser_dnase_acc::Parser_dnase_acc(std::string input_file) {
             }
             if (previous_state == 1 && current_state == 0) {
                 end = counter;
-                std::cout << "Open access nucleotides " << start << " " << end << "\n";
                 open_acc_intervals.push_back(std::make_pair(start, end));
             }
             previous_state = current_state;

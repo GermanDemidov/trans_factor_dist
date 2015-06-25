@@ -18,8 +18,6 @@ Transcription_factors_in_cell::Transcription_factors_in_cell(std::vector<std::st
         number_of_unbinded_TFs[tfs[i].type_name]++;
     }
     
-    std::cout << "Sizes " << indexes_of_binded_TFs.size() << "\n";
-    
     Choose_element_from_array<int> rand_elem_int;
     choose_for_int_vect = rand_elem_int;
 }
@@ -50,7 +48,7 @@ int Transcription_factors_in_cell::choose_next_binded_DNA_to_interact() {
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_binded_TFs() {
-    return generate_next_time(0.01 * indexes_of_binded_TFs.size());
+    return generate_next_time(0.1 * indexes_of_binded_TFs.size());
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_unbinded_TFs() {
@@ -90,5 +88,16 @@ Transcription_factor& Transcription_factors_in_cell::get_tf_by_index(int i) {
     return tfs[i];
 }
 
+int Transcription_factors_in_cell::num_of_binded_TFs() {
+    return indexes_of_binded_TFs.size();
+}
+
+int Transcription_factors_in_cell::num_of_unbinded_TFs() {
+    int answer = 0;
+    for (int i = 0; i < protein_names.size(); ++i) {
+        answer += protein_names[i].size();
+    }
+    return answer;
+}
 
 

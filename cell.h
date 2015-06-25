@@ -19,6 +19,8 @@
 #include "parser.h"
 #include <ctime>
 #include "transcription_factors_in_cell.h"
+#include <fstream>
+#include <iostream>
 #include <queue>
 
 class Cell {
@@ -26,21 +28,26 @@ public:
     Cell(std::string&, std::string&, int, std::vector<Transcription_factor>&, Parser_dnase_acc&, std::map<std::string, double>&,
          std::vector<Transcription_factor>&);
     void generate_next_event(Transcription_factors_in_cell&);
-    void generate_TF_appearance_time();
     void find_specific_binding_sites(Transcription_factor, Parser_dnase_acc&, bool);
     
     void find_potential_strength(bool);
     
     void start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc&);
     
+    std::map<std::vector<bool>, bool> get_final_frequency_of_combinations();
+
 private:
     int cell_id;
     int total_number_of_TFs_to_bind = 100;
-    int number_of_steps_before_stabilization = 100;
+    int number_of_steps_before_stabilization = 1000;
     int number_of_one_dim_slidings_in_step = 3;
     
-    // first - time, second - true if it is operation of binding, false if it is operation of sliding or unbinding
-    std::priority_queue<std::pair<double, bool>, std::vector<std::pair<double, bool>>, compare> timeline;
+    void generate_next_event_with_binded(Transcription_factors_in_cell&);
+    void generate_next_event_with_unbinded(Transcription_factors_in_cell&);
+
+
+    // first - time, second - 1 if it is operation with unbinded, 2 if operation with binded
+    std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, compare> timeline;
     
     std::string forward_DNA;
     std::string reverse_DNA;
@@ -64,9 +71,6 @@ private:
     // return special value if the index is out of vector coordinates
     double return_weight_of_binding(int, std::vector<double>);
     
-    // deque for the appearance of TFs, their times (without specifying the type of TF)
-    //std::deque<double> TF_appearance_time;
-    
     // map with concentrations for each TF, that used as propensities
     std::map<std::string, double> concentrations;
     // pre-calculated sum of propensities
@@ -76,7 +80,7 @@ private:
     std::map<std::string, double> minimums_for_normalizations_of_potentials;
     
     // events of binding and unbinding
-    void bind_tf_to_dna(int, Transcription_factors_in_cell&, Parser_dnase_acc& dnase);
+    bool bind_tf_to_dna(int, Transcription_factors_in_cell&, Parser_dnase_acc& dnase);
     void unbind_tf_from_dna(int, Transcription_factors_in_cell&);
     
     // calculate next movement
@@ -92,8 +96,17 @@ private:
     void one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell&);
     
     // function that finds if tf is binded specifically and apply the result
-    void test_for_specific_binding(int i, Transcription_factors_in_cell&);
+    bool test_for_specific_binding(int i, Transcription_factors_in_cell&);
     
+    // output of the combinations of specific binding sites occupancies
+    int number_of_specific_binding_sites = 0;
+    std::map<std::string, std::map<int, int>> codes_of_specific_binding_sites_forward;
+    std::map<std::string, std::map<int, int>> codes_of_specific_binding_sites_revcompl;
+    std::vector<bool> specific_sites_binded_or_not;
+    std::map<std::vector<bool>, bool> final_frequency_of_combinations;
+    
+    // counter of steps without any changes
+    int counter_of_steps_without_changes = 0;
     
 
 };

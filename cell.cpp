@@ -32,8 +32,8 @@ Cell::Cell(std::string& for_DNA, std::string& rev_DNA,
         find_specific_binding_sites(types_of_TFs_for_preprocessing[i], dnase, false);
     }
         
-    //find_potential_strength(true);
-    //find_potential_strength(false);
+    find_potential_strength(true);
+    find_potential_strength(false);
     
     start_simulation(tfs, dnase);
 }
@@ -42,6 +42,7 @@ Cell::Cell(std::string& for_DNA, std::string& rev_DNA,
 void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc& dnase, bool forward) {
     std::vector<double> weights_of_binding;
     std::map<int, bool> specific_sites;
+    std::map<int, int> codes_of_specific_sites;
     if (forward) {
         for (int j = 0; j < forward_DNA.size() - tf.get_size(); ++j) {
             tf.change_coordinate_in_sequence(j);
@@ -49,10 +50,13 @@ void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc
             weights_of_binding.push_back(weight_of_current_binding);
             if (weight_of_current_binding > 6.0 && dnase.is_in_interval(std::make_pair(j, j + tf.get_size() - 1))) {
                 specific_sites.insert(std::make_pair(j, false));
+                number_of_specific_binding_sites++;
+                codes_of_specific_sites.insert(std::make_pair(j, number_of_specific_binding_sites));
             }
         }
         weights_of_binding_of_all_tfs_forward.insert(std::make_pair(tf.type_name, weights_of_binding));
         specific_binding_sites_forward.insert(std::make_pair(tf.type_name, specific_sites));
+        codes_of_specific_binding_sites_forward.insert(std::make_pair(tf.type_name, codes_of_specific_sites));
     } else {
         for (int j = 0; j < reverse_DNA.size() - tf.get_size(); ++j) {
             tf.change_coordinate_in_sequence(j);
@@ -61,10 +65,13 @@ void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc
             if (weight_of_current_binding > 6.0 && dnase.is_in_interval(std::make_pair(reverse_DNA.size() - j - tf.get_size(),
                                                                                        reverse_DNA.size() - j - 1))) {
                 specific_sites.insert(std::make_pair(j, true));
+                number_of_specific_binding_sites++;
+                codes_of_specific_sites.insert(std::make_pair(j, number_of_specific_binding_sites));
             }
         }
         weights_of_binding_of_all_tfs_revcompl.insert(std::make_pair(tf.type_name, weights_of_binding));
         specific_binding_sites_revcompl.insert(std::make_pair(tf.type_name, specific_sites));
+        codes_of_specific_binding_sites_forward.insert(std::make_pair(tf.type_name, codes_of_specific_sites));
     }
 }
 
@@ -123,10 +130,15 @@ void Cell::find_potential_strength(bool forward) {
             
             weights_of_binding.push_back(std::make_pair(value_to_the_left / 5, value_to_the_right / 5));
         }
+        if (forward == true) {
+            potential_strength_forward[type_of_prot] = weights_of_binding;
+        } else {
+            potential_strength_revcompl[type_of_prot] = weights_of_binding;
+        }
     }
 }
 
-void Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
+bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
     int choose_strand_to_bind = pick_a_number(0,1);
     int coordinate = 0;
     if (choose_strand_to_bind == 0) {
@@ -138,7 +150,10 @@ void Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnas
                 tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
                 tfs.bind_tf_to_dna(i, true);
                 no_access_dna_forward.insert(std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1));
-            } else {std::cout << "\n\n\n\n\n\n\nBinding site was occupied\n\n\n\n\n\n\n";}
+                return true;
+            } else {
+                return false;
+            }
         } else if (dnase.is_in_interval(std::make_pair(reverse_DNA.size() - coordinate - tfs.get_size_of_TF(i),
                                                        reverse_DNA.size() - coordinate - 1))) {
             if (binding_site_is_free(false, coordinate, tfs.get_size_of_TF(i))) {
@@ -146,17 +161,22 @@ void Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnas
             tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
             tfs.bind_tf_to_dna(i, false);
             no_access_dna_revcompl.insert(std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1));
-
-            } else {std::cout << "\n\n\n\n\n\n\nBinding site was occupied\n\n\n\n\n\n\n";}
+                return true;
+            } else {
+                return false;
+            }
         }
     }
+    return false;
 }
 
 void Cell::unbind_tf_from_dna(int i, Transcription_factors_in_cell& tfs) {
+    std::cout << "UNBINDING!\n";
+    int coordinate_in_sequence = tfs.get_tf_by_index(i).get_coordinate_in_sequence();
     if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
-        no_access_dna_forward.erase(std::make_pair(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), tfs.get_tf_by_index(i).get_coordinate_in_sequence() + tfs.get_tf_by_index(i).get_size() - 1));
+        no_access_dna_forward.erase(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_tf_by_index(i).get_size() - 1));
     } else {
-        no_access_dna_revcompl.erase(std::make_pair(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), tfs.get_tf_by_index(i).get_coordinate_in_sequence() + tfs.get_tf_by_index(i).get_size() - 1));
+        no_access_dna_revcompl.erase(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_tf_by_index(i).get_size() - 1));
     }
     tfs.unbind_tf_from_dna(i);
 }
@@ -164,30 +184,42 @@ void Cell::unbind_tf_from_dna(int i, Transcription_factors_in_cell& tfs) {
 void Cell::generate_next_event(Transcription_factors_in_cell& tfs) {
     if (timeline.empty()) {
         double first_event_time = tfs.generate_next_characteristic_time_for_unbinded_TFs();
-        timeline.push(std::make_pair(first_event_time, true));
+        timeline.push(std::make_pair(first_event_time, 1));
     } else {
-        if (timeline.top().second == false && tfs.number_of_binded_dna() != 0) {
-            timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_binded_TFs(), false));
+        if (timeline.top().second == 2 && tfs.number_of_binded_dna() != 0) {
+            timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_binded_TFs(), 2));
         } else {
-            timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_unbinded_TFs(), true));
+            timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_unbinded_TFs(), 1));
         }
     }
 }
+
+void Cell::generate_next_event_with_binded(Transcription_factors_in_cell& tfs) {
+    timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_binded_TFs(), 2));
+}
+
+void Cell::generate_next_event_with_unbinded(Transcription_factors_in_cell& tfs) {
+    timeline.push(std::make_pair(timeline.top().first + tfs.generate_next_characteristic_time_for_unbinded_TFs(), 1));
+}
+
 
 int Cell::move_tf_right_or_left(int i, double left, double right, std::string& type_name_of_prot) {
     double minimum = -1 * minimums_for_normalizations_of_potentials[type_name_of_prot] + 1;
     double a = -0.25;
     double b = 1.5;
     int answer = i;
+
     if (fRand(0.0, 2 * minimum + left + right) > minimum + left) {
         answer -= (int)(a * left + b);
     } else {
         answer += (int)(a * right + b);
     }
+    std::cout << "new coord " << answer << "\n";
     return answer;
 }
 
 bool Cell::test_for_unbinding(double weight) {
+    std::cout << "Testing for unbinding...\n";
     double a = -0.25;
     double b = -20.0;
 
@@ -229,74 +261,118 @@ bool Cell::binding_site_is_free(bool forward, int coord, int len_of_tf) {
     return true;
 }
 
+
+bool Cell::test_for_specific_binding(int i, Transcription_factors_in_cell& tfs) {
+    int coordinate_in_sequence = tfs.get_tf_by_index(i).get_coordinate_in_sequence();
+    std::string tf_type = tfs.get_tf_by_index(i).type_name;
+    if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
+        if (specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].find(coordinate_in_sequence) != specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].end()) {
+            specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
+            tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
+            no_access_dna_forward.insert(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1));
+            int code_of_current_specific_site = codes_of_specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name][coordinate_in_sequence];
+            specific_sites_binded_or_not[code_of_current_specific_site] = true;
+            final_frequency_of_combinations[specific_sites_binded_or_not] = true;
+            counter_of_steps_without_changes = 0;
+            std::cout << "Binded specifically!\n";
+            return true;
+        }
+    } else {
+        if (specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].find(coordinate_in_sequence) != specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].end()) {
+            specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
+            tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
+            no_access_dna_revcompl.insert(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1));
+            int code_of_current_specific_site = codes_of_specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name][coordinate_in_sequence];
+            specific_sites_binded_or_not[code_of_current_specific_site] = true;
+            final_frequency_of_combinations[specific_sites_binded_or_not] = true;
+            counter_of_steps_without_changes = 0;
+            std::cout << "Binded specifically!\n";
+            return true;
+        }
+    }
+    std::cout << "Not a specific binding...\n";
+    counter_of_steps_without_changes++;
+    return false;
+}
+
+void Cell::one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell& tfs) {
+    int new_coord = 0;
+    if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
+        std::cout << tfs.get_tf_by_index(i).get_coordinate_in_sequence() << "\n";
+        std::cout << potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].first << "\n";
+        std::cout << potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].second << "\n";
+        std::cout << tfs.get_tf_by_index(i).type_name << "\n";
+        int current_coordinate = tfs.get_tf_by_index(i).get_coordinate_in_sequence();
+        new_coord = move_tf_right_or_left(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].first, potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].second, tfs.get_tf_by_index(i).type_name);
+        no_access_dna_forward.erase(no_access_dna_forward.find(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) ));
+        if (binding_site_is_free(true, new_coord, tfs.get_tf_by_index(i).get_size())) {
+            tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
+            no_access_dna_forward.insert(std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) );
+        } else {
+            no_access_dna_forward.insert(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) );
+            std::cout << "CAN NOT MOVE!\n";
+        }
+    } else {
+        std::cout << tfs.get_tf_by_index(i).get_coordinate_in_sequence() << "\n";
+        std::cout << potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].first << "\n";
+        std::cout << potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].second << "\n";
+        std::cout << tfs.get_tf_by_index(i).type_name << "\n";
+        int current_coordinate = tfs.get_tf_by_index(i).get_coordinate_in_sequence();
+        new_coord = move_tf_right_or_left(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].first, potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].second, tfs.get_tf_by_index(i).type_name);
+        no_access_dna_revcompl.erase(no_access_dna_revcompl.find(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) ));
+
+        if (binding_site_is_free(false, new_coord, tfs.get_tf_by_index(i).get_size())) {
+            tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
+            no_access_dna_revcompl.insert(std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) );
+        }  else {
+            no_access_dna_revcompl.insert(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) );
+            std::cout << "CAN NOT MOVE!\n";
+        }
+    }
+}
+
+
+std::map<std::vector<bool>, bool> Cell::get_final_frequency_of_combinations() {
+    return final_frequency_of_combinations;
+}
+
+
+
 void Cell::start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
     int number_of_steps_without_change = 0;
     generate_next_event(tfs);
+    specific_sites_binded_or_not.resize(number_of_specific_binding_sites);
     
-    while (number_of_steps_without_change < number_of_steps_before_stabilization) {
-        std::pair<double, bool> next_event = timeline.top();
+    
+    while (counter_of_steps_without_changes < number_of_steps_before_stabilization) {
+        std::pair<double, int> next_event = timeline.top();
         std::cout << next_event.first << " " << next_event.second << "\n";
-        if (next_event.second == true) {
-            std::cout << number_of_steps_without_change << " next_event.second == true" << "\n";
+        if (next_event.second == 1) {
+            std::cout << number_of_steps_without_change << " operation with unbinded" << "\n";
             int next_tf = tfs.choose_next_unbinded_DNA_to_interact();
-            bind_tf_to_dna(next_tf, tfs, dnase);
-            if (tfs.number_of_binded_dna() == 0)
-                timeline.push(std::make_pair(timeline.top().first + generate_next_time(0.01), false));
+            bool result_of_binding = bind_tf_to_dna(next_tf, tfs, dnase);
+            if (result_of_binding == true) {
+                generate_next_event_with_binded(tfs);
+            }
+            else generate_next_event_with_unbinded(tfs);
             test_for_specific_binding(next_tf, tfs);
-        } else {
-            std::cout << number_of_steps_without_change << " next_event.second == false" << "\n";
+        } else if (next_event.second == 2){
+            std::cout << number_of_steps_without_change << " operation with binded" << "\n";
             int next_tf = tfs.choose_next_binded_DNA_to_interact();
             if (next_tf >= 0) {
-                std::cout << "NEXT BINDED TF: " << next_tf << "\n";
+                std::cout << "Next binded TF: " << next_tf << "\n";
                 
                 for (int i = 0; i < number_of_one_dim_slidings_in_step; ++i) {
+                    std::cout << "Here should be 1D sliding\n";
                     one_dimensional_slinding_of_TF(next_tf, tfs);
                     test_for_specific_binding(next_tf, tfs);
                 }
             }
+            generate_next_event_with_binded(tfs);
         }
-        generate_next_event(tfs);
         timeline.pop();
         number_of_steps_without_change++;
     }
 }
 
-void Cell::test_for_specific_binding(int i, Transcription_factors_in_cell& tfs) {
-    if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
-        if (specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].find(tfs.get_tf_by_index(i).get_coordinate_in_sequence()) != specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].end()) {
-            specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
-            tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
-        }
-    } else {
-        if (specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].find(tfs.get_tf_by_index(i).get_coordinate_in_sequence()) != specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].end()) {
-            specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
-            tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
-        }
-        
-    }
-}
 
-void Cell::one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell& tfs) {
-    std::cout << "\n\n\nWOW STARTED SLIDING!\n\n\n";
-    int new_coord = 0;
-    if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
-        new_coord = move_tf_right_or_left(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].first, potential_strength_forward[tfs.get_tf_by_index(i).type_name][i].second, tfs.get_tf_by_index(i).type_name);
-        if (binding_site_is_free(true, new_coord, tfs.get_tf_by_index(i).get_size())) {
-            tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
-        }
-    } else {
-        new_coord = move_tf_right_or_left(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].first, potential_strength_revcompl[tfs.get_tf_by_index(i).type_name][i].second, tfs.get_tf_by_index(i).type_name);
-        if (binding_site_is_free(false, new_coord, tfs.get_tf_by_index(i).get_size())) {
-            tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
-        }
-    }
-}
-
-/*void Cell::generate_TF_appearance_time() {
-    double current_time = 0.0;
-    for (int i = 0; i < total_number_of_TFs_to_bind; ++i) {
-        //std::cout << current_time << "\n";
-        TF_appearance_time.push_back(current_time);
-        current_time += generate_next_time(1 / sum_of_concentrations);
-    }
-}*/

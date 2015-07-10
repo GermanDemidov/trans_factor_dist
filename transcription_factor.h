@@ -29,12 +29,21 @@ public:
     void set_binded_to_dna_specifically();
     
     // change bool field of binding
-    void bind_to_dna(bool);
+    void bind_to_dna(bool, int);
     void unbind_from_dna();
     
     bool is_binded_to_forward();
+    bool is_binded_specifically();
+    std::vector<int> sliding_length;
+    double time_of_binding = 0.0;
+    double time_of_unbinding = 0.0;
+    
+    void null_everything();
+
 
 private:
+    int start_coord = 0;
+    int finish_coord = 0;
     bool binded_to_forward_dna = false;
     int coordinate_in_sequence;
     bool binded_to_dna;

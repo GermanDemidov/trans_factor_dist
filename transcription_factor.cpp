@@ -14,6 +14,7 @@ Transcription_factor::Transcription_factor(int id_of_tf, std::vector<std::map<ch
     binded_to_dna = false;
     coordinate_in_sequence = 0;
     binded_to_forward_dna = false;
+    sliding_length.clear();
     
 }
 
@@ -40,7 +41,8 @@ bool Transcription_factor::is_binded() {
     return binded_to_dna;
 }
 
-void Transcription_factor::bind_to_dna(bool bind_to_forward) {
+void Transcription_factor::bind_to_dna(bool bind_to_forward, int coord) {
+    start_coord = coord;
     binded_to_dna = true;
     if (bind_to_forward)
         binded_to_forward_dna = true;
@@ -48,6 +50,7 @@ void Transcription_factor::bind_to_dna(bool bind_to_forward) {
 }
 
 void Transcription_factor::unbind_from_dna() {
+    sliding_length.push_back(abs(coordinate_in_sequence - start_coord));
     binded_to_dna = false;
 }
 
@@ -61,4 +64,22 @@ int Transcription_factor::get_coordinate_in_sequence() {
 
 void Transcription_factor::set_binded_to_dna_specifically() {
     binded_to_dna_specifically = true;
+}
+
+bool Transcription_factor::is_binded_specifically() {
+    return binded_to_dna_specifically;
+}
+
+void Transcription_factor::null_everything() {
+    time_of_binding = 0.0;
+    time_of_unbinding = 0.0;
+    start_coord = 0;
+    finish_coord = 0;
+    binded_to_forward_dna = false;
+    coordinate_in_sequence = 0;
+    binded_to_dna = false;
+    binded_to_dna_specifically = false;
+    sliding_length.clear();
+    sliding_length.push_back(10.0);
+
 }

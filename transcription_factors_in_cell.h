@@ -19,7 +19,7 @@ class Transcription_factors_in_cell {
 public:
     Transcription_factor& get_tf_by_index(int);
 
-    Transcription_factors_in_cell(std::vector<std::string>, std::vector<Transcription_factor>&);
+    Transcription_factors_in_cell(std::vector<std::string>, std::vector<Transcription_factor>);
     int choose_next_unbinded_DNA_to_interact();
     int choose_next_binded_DNA_to_interact();
     int number_of_binded_dna();
@@ -29,17 +29,21 @@ public:
     int get_size_of_TF(int i);
     
     // change options of binding
-    void bind_tf_to_dna(int, bool);
+    void bind_tf_to_dna(int, bool, int);
     void unbind_tf_from_dna(int);
     
     int num_of_binded_TFs();
     int num_of_unbinded_TFs();
+    
+    std::map<std::string, std::vector<double> > return_average_sliding_lengths_vectors();
+    void null_everything(std::vector<std::string>);
 
 private:
     std::vector<Transcription_factor> tfs;
     std::vector<std::string> protein_names;
     std::map<std::string, int> number_of_unbinded_TFs;
     std::set<int> indexes_of_binded_TFs;
+    std::set<int> indexes_of_unbinded_TFs;
     Choose_element_from_array<int> choose_for_int_vect;
     
 

@@ -76,10 +76,6 @@ double generate_next_time(double sum_of_propensities) {
     return result;
 }
 
-int generate_next_coordinate_change() {
-    return 5 + (int)generate_next_time(4.0);
-}
-
 double fRand(double x, double y)
 {
     double fMin = std::min(x,y);

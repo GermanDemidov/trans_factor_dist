@@ -32,18 +32,32 @@ public:
     
     void find_potential_strength(bool);
     
-    void start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc&);
+    void start_simulation(Transcription_factors_in_cell tfs, Parser_dnase_acc);
     
     std::map<std::vector<bool>, bool> get_final_frequency_of_combinations();
-
+    
+    void null_everything(Parser_dnase_acc&);
+    
+    std::vector<bool> get_final_combo();
+    std::vector<double> get_times_of_changes();
+    
 private:
     int cell_id;
-    int total_number_of_TFs_to_bind = 100;
-    int number_of_steps_before_stabilization = 1000;
-    int number_of_one_dim_slidings_in_step = 3;
+    int total_number_of_TFs_to_bind;
+    int number_of_steps_before_stabilization = 5000;
+    int number_of_one_dim_slidings_in_step = 5;
+    std::string repressor = ">hb";
+    int length_of_repression = 100;
     
     void generate_next_event_with_binded(Transcription_factors_in_cell&);
     void generate_next_event_with_unbinded(Transcription_factors_in_cell&);
+    
+    std::map<std::string, int> sizes_of_tfs;
+    void determine_sizes_of_tfs(Transcription_factor, Parser_dnase_acc&, bool);
+    
+    double time_before_stabilization = 5000.0;
+    double upper_bound_for_time = 15000.0;
+    int bound_for_number_of_specific_sites = 60;
 
 
     // first - time, second - 1 if it is operation with unbinded, 2 if operation with binded
@@ -104,10 +118,13 @@ private:
     std::map<std::string, std::map<int, int>> codes_of_specific_binding_sites_revcompl;
     std::vector<bool> specific_sites_binded_or_not;
     std::map<std::vector<bool>, bool> final_frequency_of_combinations;
+    std::vector<double> time_for_unbinded_state;
+    std::vector<double> time_for_binded_state;
     
     // counter of steps without any changes
     int counter_of_steps_without_changes = 0;
     
+    std::vector<double> times_of_changes;
 
 };
 

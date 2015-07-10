@@ -175,6 +175,7 @@ Parser_dnase_acc::Parser_dnase_acc(std::string input_file) {
             counter++;
             if (previous_state == 0 && current_state == 1) {
                 start = counter;
+                no_acc_intervals.push_back(std::make_pair(end, start));
             }
             if (previous_state == 1 && current_state == 0) {
                 end = counter;
@@ -183,6 +184,9 @@ Parser_dnase_acc::Parser_dnase_acc(std::string input_file) {
             previous_state = current_state;
         }
     }
+
+    if (current_state == 0) no_acc_intervals.push_back(std::make_pair(end, counter));
+    else no_acc_intervals.push_back(std::make_pair(start, counter));
 };
 
 bool Parser_dnase_acc::is_in_interval(std::pair<int, int> coords_of_tf_binding) {
@@ -205,7 +209,9 @@ bool Parser_dnase_acc::is_in_interval(int x) {
     return false;
 }
 
-
+std::vector<std::pair<int, int>> Parser_dnase_acc::return_no_acc_intervals() {
+    return no_acc_intervals;
+}
 
 
 

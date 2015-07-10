@@ -54,7 +54,11 @@ class Parser_dnase_acc {
 private:
     std::vector<std::pair<int, int>> open_acc_intervals;
 
+
+    std::vector<std::pair<int, int>> no_acc_intervals;
+
 public:
+    std::vector<std::pair<int, int>> return_no_acc_intervals();
     Parser_dnase_acc(std::string);
     bool is_in_interval(std::pair<int, int>);
     bool is_in_interval(int);

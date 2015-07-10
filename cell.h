@@ -48,6 +48,9 @@ private:
     int number_of_one_dim_slidings_in_step = 5;
     std::string repressor = ">hb";
     int length_of_repression = 100;
+    double time_before_stabilization = 5000.0;
+    double upper_bound_for_time = 15000.0;
+    int bound_for_number_of_specific_sites = 60;
     
     void generate_next_event_with_binded(Transcription_factors_in_cell&);
     void generate_next_event_with_unbinded(Transcription_factors_in_cell&);
@@ -55,9 +58,7 @@ private:
     std::map<std::string, int> sizes_of_tfs;
     void determine_sizes_of_tfs(Transcription_factor, Parser_dnase_acc&, bool);
     
-    double time_before_stabilization = 5000.0;
-    double upper_bound_for_time = 15000.0;
-    int bound_for_number_of_specific_sites = 60;
+
 
 
     // first - time, second - 1 if it is operation with unbinded, 2 if operation with binded

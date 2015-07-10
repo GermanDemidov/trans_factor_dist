@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 gdemidov. All rights reserved.
 //
 
-#include "Transcription_factors_in_cell.h"
+#include "transcription_factors_in_cell.h"
 
 Transcription_factors_in_cell::Transcription_factors_in_cell(std::vector<std::string> prot_names, std::vector<Transcription_factor> tfs_to_start) {
     tfs = tfs_to_start;

@@ -42,7 +42,10 @@ public:
         //std::string euchromatin_input = gene_to_study + "_dnaseAccS05.btrack";
         std::string euchromatin_input = path_to_files + gene_to_study + "_dnaseAccS05.btrack";
         std::string output_file_name = path_to_files + file_to_out;
+        std::string output_file_name_raw = path_to_files + "raw_" + file_to_out;
 
+        std::ofstream outfile_raw;
+        outfile_raw.open(output_file_name_raw, std::ios::app);
         
         std::map<int, std::vector<double> > times_of_steps_for_each;
         for (int i = 0; i < 1000; i++) {
@@ -127,6 +130,12 @@ public:
                     Cell new_cell = *new Cell(promoter_sequence, revcompl_promoter_sequence, k,
                                               transcription_factors_to_initialize, euchromatin, concentrations, tfs_instances);
                     final_combo = new_cell.get_final_combo();
+                    for (int s = 0; s < final_combo.size(); s++) {
+                        outfile_raw << final_combo[s];
+                    }
+                    outfile_raw << "\n";
+                    outfile_raw.close();
+                    
                     if (final_combinations.find(final_combo) != final_combinations.end()) {
                         final_combinations[final_combo] += 1;
                     } else {
@@ -178,6 +187,10 @@ public:
                         thr1.join();
                         thr2.join();
                         thr3.join();
+                        /*new_cell.start_simulation(tfs, euchromatin);
+                        new_cell1.start_simulation(tfs1, euchromatin);
+                        new_cell2.start_simulation(tfs2, euchromatin);
+                        new_cell3.start_simulation(tfs3, euchromatin);*/
 
                         // new_cell.start_simulation(tfs, euchromatin);
                         final_combo = new_cell.get_final_combo();
@@ -205,6 +218,12 @@ public:
                             } else {
                                 final_combinations[final_combos[l]] = 1;
                             }
+                            outfile_raw.open(output_file_name_raw, std::ios::app);
+                            for (int s = 0; s < final_combos[l].size(); s++) {
+                                outfile_raw << final_combos[l][s];
+                            }
+                            outfile_raw << "\n";
+                            outfile_raw.close();
                         }
                         /*times_of_steps = new_cell.get_times_of_changes();
                         if (times_of_steps.size() > 3) {
@@ -265,7 +284,7 @@ public:
          std::cout << count_of_hops << "\n";
          std::cout << count_of_long_hops << "\n";
          std::cout << "\nMEAN: " << sm(test) << " SD: " << sd(test) << "\n";*/
-        
+        outfile_raw.close();
         
     }
 };

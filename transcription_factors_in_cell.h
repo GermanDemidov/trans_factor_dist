@@ -19,7 +19,7 @@ class Transcription_factors_in_cell {
 public:
     Transcription_factor& get_tf_by_index(int);
 
-    Transcription_factors_in_cell(std::vector<std::string>, std::vector<Transcription_factor>);
+    Transcription_factors_in_cell(std::vector<std::string>&, std::vector<Transcription_factor>&);
     int choose_next_unbinded_DNA_to_interact();
     int choose_next_binded_DNA_to_interact();
     int number_of_binded_dna();

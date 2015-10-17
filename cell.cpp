@@ -86,7 +86,9 @@ void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc
             weights_of_binding.push_back(weight_of_current_binding);
             if (weight_of_current_binding > 3.0 && dnase.is_in_interval(std::make_pair(j, j + tf.get_size() - 1))) {
                 specific_sites.insert(std::make_pair(j, false));
-                std::cout << "Forward\t" << tf.type_name << "\t" << j << "\t" << j + tf.get_size() - 1 << "\t" << weight_of_current_binding << " " << number_of_specific_binding_sites << "\n";
+                std::cout << "Forward\t" << tf.type_name << "\t" << j << "\t" << j + tf.get_size() - 1 << "\t"
+                << reverse_DNA.size() - j - tf.get_size() + 1 << "\t" << reverse_DNA.size() - j << "\t"
+                << weight_of_current_binding << "\t" << number_of_specific_binding_sites << "\n";
                 codes_of_specific_sites.insert(std::make_pair(j, number_of_specific_binding_sites));
                 number_of_specific_binding_sites++;
             }
@@ -102,7 +104,9 @@ void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc
             if (weight_of_current_binding > 3.0 && dnase.is_in_interval(std::make_pair(reverse_DNA.size() - j - tf.get_size(),
                                                                                        reverse_DNA.size() - j - 1))) {
                 specific_sites.insert(std::make_pair(j, true));
-                std::cout << "Revcompl\t" << tf.type_name << "\t" << j << "\t" << j + tf.get_size() - 1 << " " << "\t" <<  weight_of_current_binding << " " << number_of_specific_binding_sites << "\n";
+                std::cout << "Revcompl\t" << tf.type_name << "\t" << j << "\t" << j + tf.get_size() - 1 << "\t"
+                <<  forward_DNA.size() - j - tf.get_size() + 1 << "\t" << forward_DNA.size() - j << "\t"
+                <<  weight_of_current_binding << "\t" << number_of_specific_binding_sites << "\n";
                 codes_of_specific_sites.insert(std::make_pair(j, number_of_specific_binding_sites));
                 number_of_specific_binding_sites++;
             }
@@ -113,7 +117,7 @@ void Cell::find_specific_binding_sites(Transcription_factor tf, Parser_dnase_acc
     }
 }
 
-double Cell::return_weight_of_binding(int i, std::vector<double> weights_of_binding) {
+double Cell::return_weight_of_binding(int i, std::vector<double>& weights_of_binding) {
     double weight_of_other_DNA = -20.0;
     if (i >= 0 && i < weights_of_binding.size()) return weights_of_binding[i];
     else return weight_of_other_DNA;
@@ -180,7 +184,19 @@ void Cell::find_potential_strength(bool forward) {
     }
 }
 
-bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
+int Cell::choose_position_with_maximum_weight_inside_neighborhood(int coord, int size_of_tf, std::vector<double>& weights) {
+    int new_coord = coord;
+    double max_weight = -1000.0;
+    for (int j = std::max(coord - size_of_tf, 0); j < std::min(coord + size_of_tf, (int)reverse_DNA.size()); j++) {
+        if (weights[j] > max_weight) {
+            max_weight = weights[j];
+            new_coord = j;
+        }
+    }
+    return new_coord;
+}
+
+/*bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
     int choose_strand_to_bind = pick_a_number(0,1);
     int coordinate = 0;
     if (choose_strand_to_bind == 0) {
@@ -188,11 +204,13 @@ bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnas
     } else {
         coordinate = pick_a_number(0, (int)reverse_DNA.size() - 1);
     }
+    std::pair<int, int> coordinates = std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1);
     if (choose_strand_to_bind == 0) {
         if (binding_site_is_free(true, coordinate, tfs.get_size_of_TF(i))) {
             tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
             tfs.bind_tf_to_dna(i, true, coordinate);
-            no_access_dna_forward.insert(std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1));
+            no_access_dna_forward.insert(coordinates);
+            no_access_dna_revcompl.insert(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
             return true;
         } else {
             return false;
@@ -203,21 +221,117 @@ bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnas
         
         tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
         tfs.bind_tf_to_dna(i, false, coordinate);
-        no_access_dna_revcompl.insert(std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1));
+        no_access_dna_revcompl.insert(coordinates);
+        no_access_dna_forward.insert(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
         return true;
     } else {
         //std::cout << "not free..." << coordinate << "\n";
         return false;
     }
     return false;
+}*/
+
+bool Cell::bind_tf_to_dna(int i, Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
+    int choose_strand_to_bind = pick_a_number(0,1);
+    int coordinate = 0;
+    if (choose_strand_to_bind == 0) {
+        coordinate = pick_a_number(0, (int)forward_DNA.size() - 1);
+    } else {
+        coordinate = pick_a_number(0, (int)reverse_DNA.size() - 1);
+    }
+    std::vector<double> weights_of_binding;
+    int size_of_tf = tfs.get_tf_by_index(i).get_size();
+    int new_coordinate = 0;
+    // maximum number of stochastic jumps before protein lands
+    int counter_of_stochastic_jumps = 0;
+    
+    while (counter_of_stochastic_jumps < max_number_of_stochastic_jumps_before_landing) {
+        if (choose_strand_to_bind == 0) {
+            weights_of_binding = weights_of_binding_of_all_tfs_forward[(tfs.get_tf_by_index(i).type_name)];
+            coordinate = choose_position_with_maximum_weight_inside_neighborhood(coordinate, size_of_tf, weights_of_binding);
+        } else {
+            weights_of_binding = weights_of_binding_of_all_tfs_revcompl[(tfs.get_tf_by_index(i).type_name)];
+            coordinate = choose_position_with_maximum_weight_inside_neighborhood(coordinate, size_of_tf, weights_of_binding);
+        }
+        
+        if (choose_strand_to_bind == 0) {
+            if (binding_site_is_free(true, coordinate, tfs.get_size_of_TF(i))) {
+                tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
+                tfs.bind_tf_to_dna(i, true, coordinate);
+                
+                std::pair<int, int> coordinates = std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1);
+
+                no_access_dna_forward.insert(coordinates);
+                no_access_dna_revcompl.insert(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
+                return true;
+            } else {
+                counter_of_stochastic_jumps++;
+                choose_strand_to_bind = pick_a_number(0,1);
+                new_coordinate = return_normal_number(coordinate, sd_of_jumps);
+                //std::cout << "Jump " << coordinate << " " << new_coordinate << " " << counter_of_stochastic_jumps << "\n";
+                if (choose_strand_to_bind == 0) {
+                    if (new_coordinate < 0 || new_coordinate > (int)forward_DNA.size() - 1) {
+                        return false;
+                    }
+                } else {
+                    if (new_coordinate < 0 || new_coordinate > (int)reverse_DNA.size() - 1) {
+                        return false;
+                    }
+                }
+                if (choose_strand_to_bind != 0) {
+                    //std::cout << "Changed strand!\n";
+                    coordinate = (int)reverse_DNA.size() - new_coordinate;
+                } else {
+                    coordinate = new_coordinate;
+                }
+            }
+        }
+        else {
+            if (binding_site_is_free(false, coordinate, tfs.get_size_of_TF(i))) {
+                tfs.get_tf_by_index(i).change_coordinate_in_sequence(coordinate);
+                tfs.bind_tf_to_dna(i, false, coordinate);
+                
+                std::pair<int, int> coordinates = std::make_pair(coordinate, coordinate + tfs.get_size_of_TF(i) - 1);
+
+                no_access_dna_revcompl.insert(coordinates);
+                no_access_dna_forward.insert(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
+                return true;
+            } else {
+                counter_of_stochastic_jumps++;
+                choose_strand_to_bind = pick_a_number(0,1);
+                new_coordinate = return_normal_number(coordinate, sd_of_jumps);
+                //std::cout << "Jump " << coordinate << " " << new_coordinate << " " << counter_of_stochastic_jumps << "\n";
+                if (choose_strand_to_bind == 0) {
+                    if (new_coordinate < 0 || new_coordinate > (int)forward_DNA.size() - 1) {
+                        return false;
+                    }
+                } else {
+                    if (new_coordinate < 0 || new_coordinate > (int)reverse_DNA.size() - 1) {
+                        return false;
+                    }
+                }
+                if (choose_strand_to_bind != 1) {
+                    //std::cout << "Changed strand!\n";
+                    coordinate = (int)reverse_DNA.size() - new_coordinate;
+                } else {
+                    coordinate = new_coordinate;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 void Cell::unbind_tf_from_dna(int i, Transcription_factors_in_cell& tfs) {
     int coordinate_in_sequence = tfs.get_tf_by_index(i).get_coordinate_in_sequence();
+    std::pair<int, int> coordinates = std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1);
+
     if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
-        no_access_dna_forward.erase(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_tf_by_index(i).get_size() - 1));
+        no_access_dna_forward.erase(coordinates);
+        no_access_dna_revcompl.erase(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
     } else {
-        no_access_dna_revcompl.erase(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_tf_by_index(i).get_size() - 1));
+        no_access_dna_revcompl.erase(coordinates);
+        no_access_dna_forward.erase(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
     }
     tfs.unbind_tf_from_dna(i);
 }
@@ -272,8 +386,8 @@ int Cell::move_tf_right_or_left(int i, double left, double right, std::string& t
 }
 
 bool Cell::test_for_unbinding(double weight) {
-    double a = -0.2;
-    double b = -20.0;
+    double a = -0.3;
+    double b = -15.0;
     
     double dice = fRand(0.0, 1.0);
     double bound = 1.0 / (1.0 + exp(-a * (weight - b)));
@@ -310,23 +424,33 @@ bool Cell::test_for_specific_binding(int i, Transcription_factors_in_cell& tfs) 
     std::string tf_type = tfs.get_tf_by_index(i).type_name;
     bool flag_of_previous_binding = false;
     if (tfs.get_tf_by_index(i).is_binded_to_forward()) {
-        if (no_access_dna_forward.find(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1) ) != no_access_dna_forward.end()) {
+        std::pair<int, int> coordinates = std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1) ;
+        if (no_access_dna_forward.find(coordinates ) != no_access_dna_forward.end()) {
             flag_of_previous_binding = true;
         }
         if (flag_of_previous_binding) {
-            no_access_dna_forward.erase(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1) );
+            no_access_dna_forward.erase(coordinates );
+            no_access_dna_revcompl.erase(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
         }
         if (specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].find(coordinate_in_sequence) != specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name].end()) {
             specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
             tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
             if (tf_type != repressor) {
-                no_access_dna_forward.insert(std::make_pair(coordinate_in_sequence - 1, coordinate_in_sequence + tfs.get_size_of_TF(i)));
+                no_access_dna_forward.insert(broad_borders(1, coordinates));
+                no_access_dna_revcompl.insert(broad_borders(1, reverse_interval_for_another_strand(reverse_DNA.size(), coordinates)));
             } else {
-                if (binding_site_is_free(true, coordinate_in_sequence - length_of_repression, tfs.get_size_of_TF(i) + length_of_repression)) {
+                if (
+                    (binding_site_is_free(true, coordinate_in_sequence - length_of_repression, tfs.get_size_of_TF(i) + 2 * length_of_repression)) && 
+                    (binding_site_is_free(false, reverse_DNA.size() - coordinate_in_sequence - tfs.get_size_of_TF(i) - length_of_repression,
+                                          tfs.get_size_of_TF(i) + 2 * length_of_repression))
+                    ) {
                         no_access_dna_forward.insert(std::make_pair(coordinate_in_sequence - length_of_repression, coordinate_in_sequence + tfs.get_size_of_TF(i) + length_of_repression));
-                    //std::cout << "REPRESSION HAPPENED \n";
+                        no_access_dna_revcompl.insert( broad_borders(length_of_repression, reverse_interval_for_another_strand(reverse_DNA.size(), coordinates) ));
+                    //std::cout << "REPRESSION HAPPENED FORWARD " << coordinate_in_sequence << "\n";
                 } else {
                     no_access_dna_forward.insert(std::make_pair(coordinate_in_sequence - 1, coordinate_in_sequence + tfs.get_size_of_TF(i)));
+                    no_access_dna_revcompl.insert(broad_borders(1, reverse_interval_for_another_strand(reverse_DNA.size(), coordinates)));
+                    //std::cout << "REPRESSION NOT HAPPENED " << coordinate_in_sequence << "\n";
                 }
             }
             int code_of_current_specific_site = codes_of_specific_binding_sites_forward[tfs.get_tf_by_index(i).type_name][coordinate_in_sequence];
@@ -338,25 +462,36 @@ bool Cell::test_for_specific_binding(int i, Transcription_factors_in_cell& tfs) 
         }
         if (flag_of_previous_binding) {
             no_access_dna_forward.insert(std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1) );
+            no_access_dna_revcompl.insert(reverse_interval_for_another_strand(reverse_DNA.size(), coordinates));
         }
     } else {
-        if (no_access_dna_revcompl.find(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) ) != no_access_dna_revcompl.end()) {
+        std::pair<int, int> coordinates = std::make_pair(coordinate_in_sequence, coordinate_in_sequence + tfs.get_size_of_TF(i) - 1) ;
+
+        if (no_access_dna_revcompl.find(coordinates ) != no_access_dna_revcompl.end()) {
             flag_of_previous_binding = true;
         }
         if (flag_of_previous_binding) {
-            no_access_dna_revcompl.erase(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1));
+            no_access_dna_revcompl.erase(coordinates);
+            no_access_dna_forward.erase(reverse_interval_for_another_strand(forward_DNA.size(), coordinates));
         }
         if (specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].find(coordinate_in_sequence) != specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name].end()) {
             specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name][tfs.get_tf_by_index(i).get_coordinate_in_sequence()] = true;
             tfs.get_tf_by_index(i).set_binded_to_dna_specifically();
             if (tf_type != repressor) {
-                no_access_dna_revcompl.insert(std::make_pair(coordinate_in_sequence - 1, coordinate_in_sequence + tfs.get_size_of_TF(i)));
+                no_access_dna_revcompl.insert(broad_borders(1, coordinates));
+                no_access_dna_forward.insert(broad_borders(1, reverse_interval_for_another_strand(forward_DNA.size(), coordinates)));
             } else {
-                if (binding_site_is_free(false, coordinate_in_sequence - length_of_repression, tfs.get_size_of_TF(i) + length_of_repression)) {
+                if (
+                    (binding_site_is_free(false, coordinate_in_sequence - length_of_repression, tfs.get_size_of_TF(i) + 2 * length_of_repression)) &&
+                    (binding_site_is_free(true, forward_DNA.size() - coordinate_in_sequence - tfs.get_size_of_TF(i) - length_of_repression,
+                                          tfs.get_size_of_TF(i) + 2 * length_of_repression))
+                    ) {
                     no_access_dna_revcompl.insert(std::make_pair(coordinate_in_sequence - length_of_repression, coordinate_in_sequence + tfs.get_size_of_TF(i) + length_of_repression));
-                    //std::cout << "REPRESSION HAPPENED \n";
+                    no_access_dna_forward.insert( broad_borders(length_of_repression, reverse_interval_for_another_strand(forward_DNA.size(), coordinates) ));
+                    //std::cout << "REPRESSION HAPPENED REVCOMPL " << coordinate_in_sequence << "\n";
                 } else {
                     no_access_dna_revcompl.insert(std::make_pair(coordinate_in_sequence - 1, coordinate_in_sequence + tfs.get_size_of_TF(i)));
+                    no_access_dna_forward.insert(broad_borders(1, reverse_interval_for_another_strand(forward_DNA.size(), coordinates)));
                 }
             }
             int code_of_current_specific_site = codes_of_specific_binding_sites_revcompl[tfs.get_tf_by_index(i).type_name][coordinate_in_sequence];
@@ -368,6 +503,8 @@ bool Cell::test_for_specific_binding(int i, Transcription_factors_in_cell& tfs) 
         }
         if (flag_of_previous_binding) {
             no_access_dna_revcompl.insert(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) );
+            no_access_dna_forward.insert(reverse_interval_for_another_strand(forward_DNA.size(), coordinates));
+
         }
     }
     counter_of_steps_without_changes++;
@@ -383,11 +520,17 @@ void Cell::one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell& 
         new_coord = move_tf_right_or_left(tfs.get_tf_by_index(i).get_coordinate_in_sequence(), potential_strength_forward[tfs.get_tf_by_index(i).type_name][current_coordinate].first, potential_strength_forward[tfs.get_tf_by_index(i).type_name][current_coordinate].second, tfs.get_tf_by_index(i).type_name);
         if (new_coord > 0 && new_coord < forward_DNA.length()) {
             no_access_dna_forward.erase(no_access_dna_forward.find(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) ));
+            no_access_dna_revcompl.erase(no_access_dna_revcompl.find(reverse_interval_for_another_strand(reverse_DNA.size(), std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) )));
+
             if (binding_site_is_free(true, new_coord, tfs.get_tf_by_index(i).get_size())) {
                 tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
                 no_access_dna_forward.insert(std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) );
+                no_access_dna_revcompl.insert(reverse_interval_for_another_strand(reverse_DNA.size(), std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) ));
+
             } else {
                 no_access_dna_forward.insert(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) );
+                no_access_dna_revcompl.insert(reverse_interval_for_another_strand(reverse_DNA.size(), std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1)) );
+
                 //std::cout << "Can not move!\n";
             }
         }
@@ -400,11 +543,17 @@ void Cell::one_dimensional_slinding_of_TF(int i, Transcription_factors_in_cell& 
         if (new_coord > 0 && new_coord < reverse_DNA.length()) {
             
             no_access_dna_revcompl.erase(no_access_dna_revcompl.find(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) ));
+            no_access_dna_forward.erase(no_access_dna_forward.find(reverse_interval_for_another_strand(forward_DNA.size(), std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) )));
+
             if (binding_site_is_free(false, new_coord, tfs.get_tf_by_index(i).get_size())) {
                 tfs.get_tf_by_index(i).change_coordinate_in_sequence(new_coord);
                 no_access_dna_revcompl.insert(std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) );
+                no_access_dna_forward.insert(reverse_interval_for_another_strand(forward_DNA.size(), std::make_pair(new_coord, new_coord + tfs.get_size_of_TF(i) - 1) ));
+
             }  else {
                 no_access_dna_revcompl.insert(std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1) );
+                no_access_dna_forward.insert(reverse_interval_for_another_strand(forward_DNA.size(), std::make_pair(current_coordinate, current_coordinate + tfs.get_size_of_TF(i) - 1)) );
+
                 //std::cout << "Can not move!\n";
             }
         }
@@ -418,7 +567,7 @@ std::map<std::vector<bool>, bool> Cell::get_final_frequency_of_combinations() {
 
 
 
-void Cell::start_simulation(Transcription_factors_in_cell tfs, Parser_dnase_acc dnase) {
+void Cell::start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc& dnase) {
     int number_of_steps_without_change = 0;
     generate_next_event(tfs);
     specific_sites_binded_or_not.resize(number_of_specific_binding_sites);

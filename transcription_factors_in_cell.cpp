@@ -8,7 +8,7 @@
 
 #include "transcription_factors_in_cell.h"
 
-Transcription_factors_in_cell::Transcription_factors_in_cell(std::vector<std::string> prot_names, std::vector<Transcription_factor> tfs_to_start) {
+Transcription_factors_in_cell::Transcription_factors_in_cell(std::vector<std::string>& prot_names, std::vector<Transcription_factor>& tfs_to_start) {
     tfs = tfs_to_start;
     protein_names = prot_names;
     for (int i = 0; i < protein_names.size(); i++) {
@@ -49,7 +49,7 @@ int Transcription_factors_in_cell::choose_next_binded_DNA_to_interact() {
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_binded_TFs() {
-    return generate_next_time(0.2 * indexes_of_binded_TFs.size());
+    return generate_next_time(200.0 * indexes_of_binded_TFs.size());
 }
 
 double Transcription_factors_in_cell::generate_next_characteristic_time_for_unbinded_TFs() {

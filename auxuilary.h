@@ -17,6 +17,7 @@
 #include <iostream>
 #include <map>
 #include <tgmath.h>
+#include <algorithm>
 #include  <iterator>
 
 class Precalculated_values {
@@ -74,5 +75,10 @@ std::default_random_engine & global_urng( );
 void randomize( );
 int pick_a_number( int from, int thru );
 
+std::pair<int, int> reverse_interval_for_another_strand(long, std::pair<int, int>);
+
+std::pair<int, int> broad_borders(int, std::pair<int, int>);
+
+int return_normal_number(double mean, double sd);
 
 #endif /* defined(__trans_factors_distrib__auxuilary__) */

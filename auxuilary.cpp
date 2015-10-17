@@ -68,7 +68,7 @@ double generate_next_time(double sum_of_propensities) {
     std::random_device rd;
     std::mt19937 gen(rd());
     
-    double lambda = 1 / sum_of_propensities;
+    double lambda = 0.000005 * sum_of_propensities;
     double result = 0.0;
     std::exponential_distribution<double> distribution(lambda);
     result = distribution(gen);
@@ -93,11 +93,30 @@ void randomize( ) {
     static std::random_device  rd{};
     global_urng().seed( rd() );
 }
+
 int pick_a_number( int from, int thru ) {
     randomize();
     static std::uniform_int_distribution<>  d{};
     using  parm_t  = decltype(d)::param_type;
     return d( global_urng(), parm_t{from, thru} );
 }
+
+std::pair<int, int> reverse_interval_for_another_strand(long length, std::pair<int, int> coords) {
+    return std::make_pair(length - coords.second, length - coords.first);
+}
+
+std::pair<int, int> broad_borders(int broad_to, std::pair<int, int> coords) {
+    return std::make_pair(coords.first - broad_to, coords.second + broad_to);    
+}
+
+int return_normal_number(double mean, double sd) {
+    std::default_random_engine generator;
+    std::normal_distribution<double> distribution(mean, sd);
+    double number = distribution(generator);
+    return (int)number;
+}
+
+
+
 
 

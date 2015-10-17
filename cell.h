@@ -14,6 +14,7 @@
 #include <vector>
 #include <utility>
 #include <deque>
+#include <algorithm>
 #include "auxuilary.h"
 #include "transcription_factor.h"
 #include "parser.h"
@@ -32,7 +33,7 @@ public:
     
     void find_potential_strength(bool);
     
-    void start_simulation(Transcription_factors_in_cell tfs, Parser_dnase_acc);
+    void start_simulation(Transcription_factors_in_cell& tfs, Parser_dnase_acc&);
     
     std::map<std::vector<bool>, bool> get_final_frequency_of_combinations();
     
@@ -48,9 +49,9 @@ private:
     int number_of_one_dim_slidings_in_step = 5;
     std::string repressor = ">hb";
     int length_of_repression = 100;
-    double time_before_stabilization = 5000.0;
+    double time_before_stabilization = 10000.0;
     double upper_bound_for_time = 15000.0;
-    int bound_for_number_of_specific_sites = 60;
+    int bound_for_number_of_specific_sites = 50;
     
     void generate_next_event_with_binded(Transcription_factors_in_cell&);
     void generate_next_event_with_unbinded(Transcription_factors_in_cell&);
@@ -84,7 +85,7 @@ private:
     std::set<std::pair<int, int> > no_access_dna_revcompl;
     
     // return special value if the index is out of vector coordinates
-    double return_weight_of_binding(int, std::vector<double>);
+    double return_weight_of_binding(int, std::vector<double>&);
     
     // map with concentrations for each TF, that used as propensities
     std::map<std::string, double> concentrations;
@@ -98,6 +99,11 @@ private:
     bool bind_tf_to_dna(int, Transcription_factors_in_cell&, Parser_dnase_acc& dnase);
     void unbind_tf_from_dna(int, Transcription_factors_in_cell&);
     
+    // first binding of TF to the site with maximum weight inside the neighborhood of length of TF
+    int choose_position_with_maximum_weight_inside_neighborhood(int, int, std::vector<double>&);
+    const int max_number_of_stochastic_jumps_before_landing = 5;
+    const double sd_of_jumps = 20.0;
+
     // calculate next movement
     int move_tf_right_or_left(int, double, double, std::string& );
     
@@ -125,6 +131,7 @@ private:
     // counter of steps without any changes
     int counter_of_steps_without_changes = 0;
     
+    // times when specific binding sites were occupied
     std::vector<double> times_of_changes;
 
 };

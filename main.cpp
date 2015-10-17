@@ -26,7 +26,7 @@ public:
         background_probabilities.insert(std::make_pair('G', 0.21231180721224));
         background_probabilities.insert(std::make_pair('T', 0.28768819278776));
         // number of transcription factors
-        const int number_of_transcription_factors = 1000;
+        const int number_of_transcription_factors = 100;
         
         number_of_simulation /= 4;
         
@@ -43,7 +43,7 @@ public:
         std::string euchromatin_input = path_to_files + gene_to_study + "_dnaseAccS05.btrack";
         std::string output_file_name = path_to_files + file_to_out;
         std::string output_file_name_raw = path_to_files + "raw_" + file_to_out;
-
+        
         std::ofstream outfile_raw;
         outfile_raw.open(output_file_name_raw, std::ios::app);
         
@@ -56,7 +56,6 @@ public:
         // parse FASTA-file, creates hash map "sequences" inside fasta_sequences
         // key - fasta id, value - fasta sequence
         Parser_fasta fasta_sequences(fasta_filename);
-        //fasta_sequences.debug_print();
         
         // parse PCM-file, creates PWM - hash map
         // key - TF name, value - vector of doubles
@@ -76,9 +75,6 @@ public:
         
         std::vector<Transcription_factor> transcription_factors_to_initialize;
         
-        
-        //std::cout << tf.motif[0].at('A') << "\n";
-        //typedef std::map<std::string, std::string>::iterator it_type;
         for (std::map<std::string, std::string>::iterator iterator = seqs.begin(); iterator != seqs.end(); iterator++) {
             bool flag_of_gene_to_study = false;
             for (int k = 0; k < gene_to_study.size(); ++k) {
@@ -124,23 +120,50 @@ public:
                         }
                     }
                     std::map<std::vector<bool>, int> final_combinations;
-                    std::vector<bool> final_combo;
+                    std::map<std::vector<bool>, bool> final_combo;
+                    std::vector<bool> quasi_stable_combo;
+                    
                     std::vector<double> times_of_steps;
+                    std::vector<double> times_of_steps1;
+                    std::vector<double> times_of_steps2;
+                    std::vector<double> times_of_steps3;
+                    
+                    
+                    
                     
                     Cell new_cell = *new Cell(promoter_sequence, revcompl_promoter_sequence, k,
                                               transcription_factors_to_initialize, euchromatin, concentrations, tfs_instances);
-                    final_combo = new_cell.get_final_combo();
-                    for (int s = 0; s < final_combo.size(); s++) {
-                        outfile_raw << final_combo[s];
+                    /*final_combo = new_cell.get_final_frequency_of_combinations();
+                     for (std::map<std::vector<bool>, bool>::iterator it = final_combo.begin(); it != final_combo.end(); ++it){
+                     std::vector<bool> final_comb = it->first;
+                     outfile_raw.open(output_file_name_raw, std::ios::app);
+                     for (int s = 0; s < final_comb.size(); s++) {
+                     std::cout << final_comb[s];
+                     outfile_raw << final_comb[s];
+                     }
+                     std::cout << "\n";
+                     outfile_raw << "\n";
+                     outfile_raw.close();
+                     }*/
+                    
+                    quasi_stable_combo = new_cell.get_final_combo();
+                    
+                    final_combinations[quasi_stable_combo] = 1;
+                    
+                    outfile_raw.open(output_file_name_raw, std::ios::app);
+                    outfile_raw.close();
+                    
+                    outfile_raw.open(output_file_name_raw, std::ios::app);
+                    for (int s = 0; s < quasi_stable_combo.size(); s++) {
+                        std::cout << quasi_stable_combo[s];
+                        outfile_raw << quasi_stable_combo[s];
                     }
+                    std::cout << "\n";
                     outfile_raw << "\n";
                     outfile_raw.close();
                     
-                    if (final_combinations.find(final_combo) != final_combinations.end()) {
-                        final_combinations[final_combo] += 1;
-                    } else {
-                        final_combinations[final_combo] = 1;
-                    }
+                    
+                    
                     times_of_steps = new_cell.get_times_of_changes();
                     if (times_of_steps.size() > 2) {
                         for (int k = 0; k < times_of_steps.size() - 1; k++) {
@@ -154,7 +177,7 @@ public:
                     Cell new_cell1(new_cell);
                     Cell new_cell2(new_cell);
                     Cell new_cell3(new_cell);
-
+                    
                     // block with parallelization
                     for (int l = 0; l < number_of_simulation; l++) {
                         std::cout << "\n\nSTEP " << l << "\n";
@@ -167,7 +190,7 @@ public:
                         new_cell1.null_everything(euchromatin);
                         new_cell2.null_everything(euchromatin);
                         new_cell3.null_everything(euchromatin);
-
+                        
                         Transcription_factors_in_cell tfs(protein_names, tfs_instances);
                         Transcription_factors_in_cell tfs1(protein_names, tfs_instances);
                         Transcription_factors_in_cell tfs2(protein_names, tfs_instances);
@@ -177,93 +200,140 @@ public:
                         tfs1.null_everything(protein_names);
                         tfs2.null_everything(protein_names);
                         tfs3.null_everything(protein_names);
-
-                        std::thread thr(&Cell::start_simulation, &new_cell, tfs, euchromatin);
-                        std::thread thr1(&Cell::start_simulation, &new_cell1, tfs1, euchromatin);
-                        std::thread thr2(&Cell::start_simulation, &new_cell2, tfs2, euchromatin);
-                        std::thread thr3(&Cell::start_simulation, &new_cell3, tfs3, euchromatin);
+                        
+                        std::thread thr(&Cell::start_simulation, &new_cell, std::ref(tfs), std::ref(euchromatin));
+                        std::thread thr1(&Cell::start_simulation, &new_cell1, std::ref(tfs1), std::ref(euchromatin));
+                        std::thread thr2(&Cell::start_simulation, &new_cell2, std::ref(tfs2), std::ref(euchromatin));
+                        std::thread thr3(&Cell::start_simulation, &new_cell3, std::ref(tfs3), std::ref(euchromatin));
                         
                         thr.join();
                         thr1.join();
                         thr2.join();
                         thr3.join();
                         /*new_cell.start_simulation(tfs, euchromatin);
-                        new_cell1.start_simulation(tfs1, euchromatin);
-                        new_cell2.start_simulation(tfs2, euchromatin);
-                        new_cell3.start_simulation(tfs3, euchromatin);*/
-
-                        // new_cell.start_simulation(tfs, euchromatin);
-                        final_combo = new_cell.get_final_combo();
-                        std::vector<bool> final_combo1;
-                        final_combo1 = new_cell1.get_final_combo();
-                        std::vector<bool> final_combo2;
-                        final_combo2 = new_cell2.get_final_combo();
-                        std::vector<bool> final_combo3;
-                        final_combo3 = new_cell3.get_final_combo();
-                        std::vector<std::vector<bool> > final_combos;
-                        final_combos.push_back(final_combo);
-                        final_combos.push_back(final_combo1);
-                        final_combos.push_back(final_combo2);
-                        final_combos.push_back(final_combo3);
+                         new_cell1.start_simulation(tfs1, euchromatin);
+                         new_cell2.start_simulation(tfs2, euchromatin);
+                         new_cell3.start_simulation(tfs3, euchromatin);*/
                         
-                        for (int l = 0; l < final_combos.size(); l++) {
-                            int number_of_specific_sites = 0;
-                            for (int d = 0; d < final_combos[l].size(); d++) {
-                                if (final_combos[l][d])
-                                    number_of_specific_sites++;
-                            }
-                            //std::cout << "Total amount of occupied sites: " << number_of_specific_sites << "\n";
-                            if (final_combinations.find(final_combos[l]) != final_combinations.end()) {
-                                final_combinations[final_combos[l]] += 1;
+                        // new_cell.start_simulation(tfs, euchromatin);
+                        /*final_combo = new_cell.get_final_frequency_of_combinations();
+                         std::map<std::vector<bool>, bool> final_combo1;
+                         final_combo1 = new_cell1.get_final_frequency_of_combinations();
+                         std::map<std::vector<bool>, bool> final_combo2;
+                         final_combo2 = new_cell2.get_final_frequency_of_combinations();
+                         std::map<std::vector<bool>, bool> final_combo3;
+                         final_combo3 = new_cell3.get_final_frequency_of_combinations();
+                         std::vector<std::map<std::vector<bool>, bool >> final_combos;
+                         final_combos.push_back(final_combo);
+                         final_combos.push_back(final_combo1);
+                         final_combos.push_back(final_combo2);
+                         final_combos.push_back(final_combo3);*/
+                        
+                        quasi_stable_combo = new_cell.get_final_combo();
+                        std::vector<bool> quasi_stable_combo1;
+                        quasi_stable_combo1 = new_cell1.get_final_combo();
+                        std::vector<bool> quasi_stable_combo2;
+                        quasi_stable_combo2 = new_cell2.get_final_combo();
+                        std::vector<bool> quasi_stable_combo3;
+                        quasi_stable_combo3 = new_cell3.get_final_combo();
+                        std::vector<std::vector<bool> > final_combos_quasi_stable;
+                        final_combos_quasi_stable.push_back(quasi_stable_combo);
+                        final_combos_quasi_stable.push_back(quasi_stable_combo1);
+                        final_combos_quasi_stable.push_back(quasi_stable_combo2);
+                        final_combos_quasi_stable.push_back(quasi_stable_combo3);
+                        
+                        
+                        for (int m = 0; m != final_combos_quasi_stable.size(); m++) {
+                            if (final_combinations.find(final_combos_quasi_stable[m]) != final_combinations.end()) {
+                                final_combinations[final_combos_quasi_stable[m]] += 1;
                             } else {
-                                final_combinations[final_combos[l]] = 1;
+                                final_combinations[final_combos_quasi_stable[m]] = 1;
                             }
                             outfile_raw.open(output_file_name_raw, std::ios::app);
-                            for (int s = 0; s < final_combos[l].size(); s++) {
-                                outfile_raw << final_combos[l][s];
+                            for (int s = 0; s < final_combos_quasi_stable[m].size(); s++) {
+                                outfile_raw << final_combos_quasi_stable[m][s];
                             }
                             outfile_raw << "\n";
                             outfile_raw.close();
                         }
-                        /*times_of_steps = new_cell.get_times_of_changes();
-                        if (times_of_steps.size() > 3) {
-                            for (int k = 0; k < times_of_steps.size() - 1; k++) {
-                                times_of_steps_for_each[k].push_back(times_of_steps[k+1] - times_of_steps[k]);
+                        
+                        
+                        for (int l = 0; l < final_combos_quasi_stable.size(); l++) {
+                            int number_of_specific_sites = 0;
+                            /*for (int d = 0; d < final_combos[l].size(); d++) {
+                             if (final_combos[l][d])
+                             number_of_specific_sites++;
+                             }*/
+                            //std::cout << "Total amount of occupied sites: " << number_of_specific_sites << "\n";
+                            /*if (final_combinations.find(final_combos[l]) != final_combinations.end()) {
+                             final_combinations[final_combos[l]] += 1;
+                             } else {
+                             final_combinations[final_combos[l]] = 1;
+                             }*/
+                            /*for (std::map<std::vector<bool>, bool>::iterator it = final_combos[l].begin(); it != final_combos[l].end(); ++it){
+                             outfile_raw.open(output_file_name_raw, std::ios::app);
+                             for (int s = 0; s < it->first.size(); s++) {
+                             outfile_raw << it->first[s];
+                             }
+                             outfile_raw << "\n";
+                             outfile_raw.close();
+                             }*/
+                            times_of_steps = new_cell.get_times_of_changes();
+                            if (times_of_steps.size() > 3) {
+                                for (int k = 0; k < times_of_steps.size() - 1; k++) {
+                                    times_of_steps_for_each[k].push_back(times_of_steps[k+1] - times_of_steps[k]);
+                                }
                             }
-                        }*/
+                            times_of_steps1 = new_cell1.get_times_of_changes();
+                            if (times_of_steps1.size() > 3) {
+                                for (int k = 0; k < times_of_steps1.size() - 1; k++) {
+                                    times_of_steps_for_each[k].push_back(times_of_steps1[k+1] - times_of_steps1[k]);
+                                }
+                            }
+                            times_of_steps2 = new_cell2.get_times_of_changes();
+                            if (times_of_steps2.size() > 3) {
+                                for (int k = 0; k < times_of_steps2.size() - 1; k++) {
+                                    times_of_steps_for_each[k].push_back(times_of_steps2[k+1] - times_of_steps2[k]);
+                                }
+                            }
+                            times_of_steps3 = new_cell3.get_times_of_changes();
+                            if (times_of_steps2.size() > 3) {
+                                for (int k = 0; k < times_of_steps3.size() - 1; k++) {
+                                    times_of_steps_for_each[k].push_back(times_of_steps3[k+1] - times_of_steps3[k]);
+                                }
+                            }
+                        }
                     }
+                    
                     std::ofstream outfile (output_file_name);
                     for (std::map<std::vector<bool>, int>::iterator it = final_combinations.begin(); it != final_combinations.end(); ++it) {
                         for (int i = 0; i < it->first.size(); i++) {
                             std::cout << it->first[i];
                             outfile << it->first[i];
                         }
-                        std::cout << " " << it->second;
-                        outfile << " " << it->second;
-                        std::cout << "\n";
-                        outfile << "\n";
+                        std::cout << " " << it->second << "\n";
+                        outfile << " " << it->second << "\n";
                     }
-                    
                 }
             }
         }
-        /*std::cout << "\n";
-        int counter_for_steps = 0;
-        for (std::map<int, std::vector<double>>::iterator it = times_of_steps_for_each.begin(); it != times_of_steps_for_each.end(); ++it) {
-            if (!it->second.empty()) {
-                std::cout << "step" << counter_for_steps << ",";
-                //std::cout << '(';
-                for (int i = 0; i < it->second.size(); i++) {
-                    std::cout << it->second[i];
-                    if (i < it->second.size() - 1) {
-                        std::cout <<  ",";
-                    }
-                }
-                //std::cout << ")";
-                std::cout << "\n";
-                counter_for_steps++;
-            }
-        }*/
+        std::cout << "\n";
+        /*int counter_for_steps = 0;
+         for (std::map<int, std::vector<double>>::iterator it = times_of_steps_for_each.begin(); it != times_of_steps_for_each.end(); ++it) {
+         if (!it->second.empty()) {
+         std::cout << "step" << counter_for_steps << ",";
+         //std::cout << '(';
+         for (int i = 0; i < it->second.size(); i++) {
+         std::cout << it->second[i];
+         if (i < it->second.size() - 1) {
+         std::cout <<  ",";
+         }
+         }
+         //std::cout << ")";
+         std::cout << "\n";
+         counter_for_steps++;
+         }
+         }*/
         /*for(std::map<std::string, std::vector<int>>::iterator iterator = highest_binding_sites.begin(); iterator != highest_binding_sites.end(); iterator++) {
          std::cout << iterator->first << "\n";
          for (int i = 0; i < iterator->second.size(); i++) {
@@ -285,14 +355,14 @@ public:
          std::cout << count_of_long_hops << "\n";
          std::cout << "\nMEAN: " << sm(test) << " SD: " << sd(test) << "\n";*/
         outfile_raw.close();
-        
     }
+    
 };
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
+    // it is a working directory. You should replace this with your directory.
     std::string path_to_files = "/Users/german/Desktop/Gurskiy/project/trans_factors_distrib/";
-    int number_of_simulations = 1000;
+    int number_of_simulations = 100;
     std::string pcm_file_input = path_to_files + argv[1];
     std::string fasta_file_input = path_to_files + argv[2];
     std::string gene_to_study = argv[3];
@@ -302,8 +372,6 @@ int main(int argc, const char * argv[]) {
     std::cout << "Starting with PCM " << pcm_file_input << "\n" << "and input fasta " << fasta_file_input << "...\n";
     
     Solver solve(fasta_file_input, pcm_file_input, gene_to_study, protein_to_study_first, protein_to_study_second, path_to_files, output_file_name, number_of_simulations);
-    
-    
     
     return 0;
 }

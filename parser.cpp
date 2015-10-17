@@ -155,6 +155,23 @@ void Parser_pcm::calculate_pwm(std::map<char, double>& background_probabilites) 
             }
             tmp_vector_for_pwm.push_back(tmp_map_for_pwm);
         }
+        std::cout << "Max score for PWM: " << it->first << "\n";
+        std::vector<double> max_values_for_consensus;
+        for (int i = 0; i < tmp_vector_for_pwm.size(); i++){
+            double max_values_position_j = -100.0;
+            for (std::vector<char>::iterator nucleot = nucleotides.begin(); nucleot != nucleotides.end(); ++nucleot) {
+                max_values_position_j = std::max(tmp_vector_for_pwm[i][*nucleot], max_values_position_j);
+            }
+            max_values_for_consensus.push_back(max_values_position_j);
+        }
+        std::cout << "[";
+        for (int i = 0; i < max_values_for_consensus.size(); ++i) {
+            std::cout << max_values_for_consensus[i];
+            if (i < max_values_for_consensus.size() - 1) {
+                std::cout << ",";
+            }
+        }
+        std::cout << "]\n";
         pwm.insert(std::make_pair(it->first, tmp_vector_for_pwm));
     }
 }
